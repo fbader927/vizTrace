@@ -5,7 +5,7 @@ A GUI traceroute program visualizing the path packets take from a device to a we
 
 
 Dependencies:
-1. Npcap - Packet capture library for Windows
+1. Npcap - Packet capture library for Windows (mac/linux uses libpcap)
 2. GeoIP2 - MaxMind's GeoIP2 Python API, for IP address geolocation
 3. MaxMind DB Reader - Reader for MaxMind's Geo database
 4. webview - Webview library to render GUI
@@ -15,7 +15,8 @@ Dependencies:
 
 
 Installation:
-Npcap needs to be installed manually from www.npcap.com
+Windows: Npcap needs to be installed manually from www.npcap.com
+macOS/Linux: libpcap needs to be installed manually 
 
 pip install geoip2
 pip install scapy
