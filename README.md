@@ -1,6 +1,6 @@
 Visual Traceroute
 ------------------
-Description:
+
 A GUI traceroute program visualizing the path packets take from a device to a website using a geomap. The backend performs the traceroute and geolocation in python, while the frontend displays results in an interactive map in html.
 
 
@@ -15,13 +15,19 @@ Dependencies:
 
 
 Installation:
+
 Windows: Npcap needs to be installed manually from www.npcap.com
+
 macOS/Linux: libpcap needs to be installed manually 
 
 pip install geoip2
+
 pip install scapy
+
 pip install Flask
+
 pip install Flask-CORS
+
 pip install pywebview
 
 
