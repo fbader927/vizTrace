@@ -11,7 +11,7 @@ Dependencies:
 4. webview - Webview library to render GUI
 5. Scapy - Crafts and sends packets for traceroute
 6. Flask - Web app framework, for GUI and handling requests
-7. Flask-CORS - Flask extension for to allow communication between frontend and backend
+7. Flask-CORS - Flask extension to allow communication between backend and UI
 
 
 Installation:
