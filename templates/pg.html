@@ -1,124 +1,132 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-   <title>Visual Traceroute</title>
-   <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v1.7.1/leaflet.css" /><!-- link to leaflet CSS -->
-   <script src="http://cdn.leafletjs.com/leaflet/v1.7.1/leaflet.js"></script>  <!-- leaflet library for interactive maps -->
-   <style>
-       #traceroute-results { /* styles for the traceroute results */
-           height: 150px;
-           overflow: auto; /* enable scrollbar if content overflows */
-           background-color: #f0f0f0; /* light grey background */
-           border: 1px solid #ddd; /* light grey border */
-           padding: 10px; /* padding inside the div */
-           margin-top: 20px; /* margin from the top */
-           user-select: text; /* ensures text is selectable */
-       }
-       .form-container { /* style to center the form on the page */
-           display: flex; /* use flexbox for layout */
-           justify-content: center; /* center children horizontally */
-           margin-top: 20px; /* margin from the top */
-       }
-       #traceForm {
-           text-align: center; /* center elements inside the form */
-       }
-   </style>
+    <meta charset="utf-8" />
+    <title>Visual Traceroute</title>
+    <!-- updated Leaflet CDN -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <style>
+        #traceroute-results {
+            height: 150px;
+            overflow: auto;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+            user-select: text;
+        }
+
+        .form-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        #traceForm {
+            text-align: center;
+        }
+    </style>
 </head>
+
 <body>
-   <div class="form-container"> <!-- Container to center the form -->
-       <form id="traceForm"> <!-- Form for inputting target website and submitting trace -->
-           <input type="text" id="target" placeholder="www.google.com">
-           <input type="submit" value="Trace">
-       </form>
-   </div>
-   <div id="map" style="height: 400px;"></div> <!-- Container for the Leaflet map -->
-   <div id="traceroute-results"></div>
-   <script>
-       var map = L.map('map').setView([0, 0], 1); // initialize Leaflet map on the 'map' div
-       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { // add OpenStreetMap tiles to map
-           attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-           maxZoom: 18,
-       }).addTo(map);
+    <div class="form-container">
+        <form id="traceForm">
+            <input type="text" id="target" placeholder="www.google.com" />
+            <input type="submit" value="Trace" />
+        </form>
+    </div>
 
-       var latlngs = []; // array to store latitude and longitude of each hop
-       var polyline = L.polyline([], { color: 'blue' }).addTo(map); // initialize a polyline without points
-       var markers = []; // array to store marker references
-       var tracerouteResultsDiv = document.getElementById('traceroute-results'); // get traceroute results div for updating
+    <div id="map" style="height: 400px;"></div>
+    <!-- default message -->
+    <div id="traceroute-results">Enter a host and click Trace</div>
 
-       function animateSegment(previousLatLng, nextLatLng, steps, interval) { // animate segment drawing on map
-           var currentStep = 0;
-           var intervalId = setInterval(function() { // calculate intermediate point
-               var lat = previousLatLng.lat + (nextLatLng.lat - previousLatLng.lat) * (currentStep / steps);
-               var lng = previousLatLng.lng + (nextLatLng.lng - previousLatLng.lng) * (currentStep / steps);
-               polyline.addLatLng(L.latLng(lat, lng)); // add point to polyline then adjust map view
-               map.fitBounds(polyline.getBounds());
-               if (++currentStep > steps) {
-                   clearInterval(intervalId); // stop animation when done
-               }
-           }, interval);
-       }
+    <script>
+        var map = L.map('map').setView([0, 0], 1);
+        L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            {
+                attribution:
+                    'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+                maxZoom: 18,
+            }
+        ).addTo(map);
 
-       document.getElementById('traceForm').addEventListener('submit', function(e) { // for form submission
-           e.preventDefault(); // prevent form from submitting traditionally
-           var target = document.getElementById('target').value; // get user input
+        var latlngs = [];
+        var polyline = L.polyline([], { color: 'blue' }).addTo(map);
+        var markers = [];
+        var tracerouteResultsDiv = document.getElementById(
+            'traceroute-results'
+        );
 
-           if (polyline) { // reset map and results for new trace
-               polyline.remove(); // remove old polyline
-               polyline = L.polyline([], { color: 'blue' }).addTo(map); // add new polyline
-           }
-           markers.forEach(function(marker) {
-               marker.remove(); // remove existing markers
-           });
-           markers = []; // resets markers array
+        function animateSegment(prev, next, steps, interval) {
+            var step = 0;
+            var id = setInterval(function () {
+                var lat = prev.lat + ((next.lat - prev.lat) * step) / steps;
+                var lng = prev.lng + ((next.lng - prev.lng) * step) / steps;
+                polyline.addLatLng([lat, lng]);
+                map.fitBounds(polyline.getBounds());
+                if (++step > steps) clearInterval(id);
+            }, interval);
+        }
 
-           latlngs = []; // resets lat/long arrays
-           tracerouteResultsDiv.innerHTML = 'Performing Traceroute, Please Wait...';
+        document
+            .getElementById('traceForm')
+            .addEventListener('submit', function (e) {
+                e.preventDefault();
+                var target = document.getElementById('target').value;
 
-           fetch('/trace', {
-               method: 'POST', // specifies method used for sending data to server
-               headers: {
-                   'Content-Type': 'application/json', // displays type of content being displayed to server
-               },
-               body: JSON.stringify({ target: target }), // converts to JSON string for sending
-           })
-           .then(response => response.json()) // parses JSON response from server into JS object
-           .then(data => {
-               console.log(data); // logs data to console
-               tracerouteResultsDiv.innerHTML = ''; // clears traceroute results div for new results
+                // reset
+                polyline.remove();
+                polyline = L.polyline([], { color: 'blue' }).addTo(map);
+                markers.forEach((m) => m.remove());
+                markers = [];
+                latlngs = [];
+                tracerouteResultsDiv.innerHTML =
+                    'Performing Traceroute, Please Wait...';
 
-               var addNextHop = function(i) { // function to process and display hops
-                   if (i < data.length) { // checks if more hops are available to process
-                       var point = data[i]; // gets current hop data
-                       var resultText = `TTL ${i + 1}: `; // prepares result text for current hop
-                       if (point.latitude != null && point.longitude != null) { // check if data avail for location
-                           var nextLatLng = L.latLng(point.latitude, point.longitude); // creates latlng object for hop
-                           var popupText = `IP: ${point.ip || 'Unknown IP'}`; // pop up text for markers displaying info
-                           popupText += `<br>City: ${point.city || 'Unknown'}`;
-                           popupText += `<br>State: ${point.state || 'Unknown'}`;
-                           popupText += `<br>Country: ${point.country || 'Unknown'}`;
-                           var marker = L.marker(nextLatLng).bindPopup(popupText).addTo(map); // marker on map for hop
-                           markers.push(marker); // adds marker to markers array
-                           resultText += `Reply from ${point.ip || 'Unknown IP'}`; // updates result with IP address
-                           if (latlngs.length > 0 && i > 0) {
-                               animateSegment(latlngs[latlngs.length - 1], nextLatLng, 10, 100); // animates segment
-                           }
-                           latlngs.push(nextLatLng); // adds current hop LatLng to latlngs array
-                       } else {
-                           resultText += 'No reply or location data missing'; // updates result if no reply
-                       }
-                       tracerouteResultsDiv.innerHTML += resultText + '<br>'; // append result to traceroute
-                       setTimeout(function() { addNextHop(i + 1); }, 1000); // set timeout to process next hop
-                   } else {
-                       tracerouteResultsDiv.innerHTML += 'Traceroute Complete!'; // after all hops added, states completed
-                   }
-               };
-               addNextHop(0); // start processing hops from beginning
-           })
-           .catch(error => {
-               console.error('Error:', error); // log any error to console
-               tracerouteResultsDiv.innerHTML = `Error performing traceroute: ${error.message}`; // display error if any
-           });
-       });
-   </script>
+                fetch('/trace', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target }),
+                })
+                    .then((r) => r.json())
+                    .then((data) => {
+                        tracerouteResultsDiv.innerHTML = '';
+                        function addNextHop(i) {
+                            if (i < data.length) {
+                                var p = data[i];
+                                var text = `TTL ${i + 1}: `;
+                                if (p.latitude != null && p.longitude != null) {
+                                    var ll = L.latLng(p.latitude, p.longitude);
+                                    var popup = `IP: ${p.ip || 'Unknown'}<br/>City: ${p.city || 'Unknown'
+                                        }<br/>State: ${p.state || 'Unknown'}<br/>Country: ${p.country || 'Unknown'
+                                        }`;
+                                    var marker = L.marker(ll).bindPopup(popup).addTo(map);
+                                    markers.push(marker);
+                                    text += `Reply from ${p.ip || 'Unknown'}`;
+                                    if (latlngs.length > 0) {
+                                        animateSegment(latlngs[latlngs.length - 1], ll, 10, 100);
+                                    }
+                                    latlngs.push(ll);
+                                } else {
+                                    text += 'No reply or location data missing';
+                                }
+                                tracerouteResultsDiv.innerHTML += text + '<br>';
+                                setTimeout(() => addNextHop(i + 1), 1000);
+                            } else {
+                                tracerouteResultsDiv.innerHTML += 'Traceroute Complete!';
+                            }
+                        }
+                        addNextHop(0);
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        tracerouteResultsDiv.innerHTML = `Error: ${err.message}`;
+                    });
+            });
+    </script>
 </body>
+
 </html>
